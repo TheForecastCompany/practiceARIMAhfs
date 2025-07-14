@@ -6,8 +6,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from statsmodels.graphics.tsaplots import plot_acf
 import matplotlib.pyplot as plt
-import io
-import base64
+import scipy.stats as stats
 
 # Load data once globally
 df = pd.read_csv("chocolate_sales.csv", parse_dates=["date"])
@@ -49,7 +48,6 @@ def train_and_forecast():
             r2, rmse, mae, mape,
             train.index, model_fit.resid)
 
-# Train model once at startup
 (model_fit, forecast_rounded, conf_int_rounded,
  test_forecast_rounded, test_conf_int_rounded,
  r2, rmse, mae, mape,
@@ -82,7 +80,6 @@ def plot_forecast():
     )
     return fig
 
-# Plot evaluation actual vs forecast
 def plot_evaluation():
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -110,14 +107,12 @@ def plot_evaluation():
     )
     return fig
 
-# Residuals plot
 def plot_residuals():
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_index, y=residuals, mode="lines", name="Residuals"))
     fig.update_layout(title="Residuals Over Time", xaxis_title="Date", yaxis_title="Residual")
     return fig
 
-# Residual histogram plot (matplotlib)
 def plot_resid_hist():
     fig, ax = plt.subplots(figsize=(8,4))
     ax.hist(residuals, bins=20, edgecolor="k", alpha=0.7)
@@ -126,21 +121,18 @@ def plot_resid_hist():
     ax.set_ylabel("Frequency")
     return fig
 
-# Residual QQ plot (matplotlib)
 def plot_resid_qq():
     fig, ax = plt.subplots(figsize=(6,6))
     stats.probplot(residuals, dist="norm", plot=ax)
     ax.set_title("Q-Q Plot of Residuals")
     return fig
 
-# Residual ACF plot (matplotlib)
 def plot_resid_acf():
     fig, ax = plt.subplots(figsize=(10,4))
     plot_acf(residuals, ax=ax, lags=40)
     ax.set_title("Autocorrelation (ACF) of Residuals")
     return fig
 
-# Lookup historical sales for a date
 def lookup_sales(date):
     date = pd.to_datetime(date)
     if date not in df.index:
@@ -148,7 +140,6 @@ def lookup_sales(date):
     sales = df.loc[date, "sales"]
     return f"Sales on {date.date()}: ${sales:.2f}"
 
-# Download CSV of forecast
 def get_csv():
     download_df = pd.DataFrame({
         "date": forecast_rounded.index,
@@ -158,7 +149,6 @@ def get_csv():
     }).set_index("date")
     return download_df.to_csv().encode('utf-8')
 
-# Define Gradio Interface
 with gr.Blocks() as demo:
     gr.Markdown("## 🍫 Chocolate Sales Forecast (Optimized ARIMA)")
     gr.Markdown("![Logo](https://i.imgur.com/oDM4ECC.jpeg)")
@@ -168,7 +158,6 @@ with gr.Blocks() as demo:
         date_input = gr.Date(label="Select a week in 2025", value=forecast_rounded.index.min().date(),
                              minimum=forecast_rounded.index.min().date(),
                              maximum=forecast_rounded.index.max().date())
-
         forecast_output = gr.Textbox(label="Forecasted Sales", interactive=False)
         ci_output = gr.Textbox(label="90% Confidence Interval", interactive=False)
 
@@ -192,20 +181,20 @@ with gr.Blocks() as demo:
         max_week = forecast_rounded.idxmax().date()
 
         with gr.Row():
-            gr.Text(f"**Total Forecast Sales:** {total_sales:,.2f}")
-            gr.Text(f"**Average Weekly Sales:** {avg_sales:.2f}")
-            gr.Text(f"**Min Weekly Sales:** {min_sales:.2f} (Week of {min_week})")
-            gr.Text(f"**Max Weekly Sales:** {max_sales:.2f} (Week of {max_week})")
+            gr.Markdown(f"**Total Forecast Sales:** {total_sales:,.2f}")
+            gr.Markdown(f"**Average Weekly Sales:** {avg_sales:.2f}")
+            gr.Markdown(f"**Min Weekly Sales:** {min_sales:.2f} (Week of {min_week})")
+            gr.Markdown(f"**Max Weekly Sales:** {max_sales:.2f} (Week of {max_week})")
 
         gr.DownloadButton("Download 2025 Forecast as CSV", get_csv, file_name="chocolate_sales_forecast_2025.csv")
 
     with gr.Tab("2024 Model Evaluation"):
         gr.Markdown("### Model Performance on 2024 Actual Data")
         with gr.Row():
-            gr.Text(f"R²: {r2:.4f}")
-            gr.Text(f"RMSE: {rmse:.2f}")
-            gr.Text(f"MAE: {mae:.2f}")
-            gr.Text(f"MAPE: {mape:.2f}%")
+            gr.Markdown(f"R²: {r2:.4f}")
+            gr.Markdown(f"RMSE: {rmse:.2f}")
+            gr.Markdown(f"MAE: {mae:.2f}")
+            gr.Markdown(f"MAPE: {mape:.2f}%")
 
         eval_plot = gr.Plot(value=plot_evaluation())
 
